@@ -1,24 +1,34 @@
-import React from "react";
+import React, { useState } from "react";
+import { useEffect } from "react";
+import { ThemeContext } from "./context/ThemeConext";
 
 function Newsletter(props) {
-  const [email, setEmail] = React.useState("");
-  // const emailPartsCount = countEmailParts(email)
+  const [email, setEmail] = useState("");
+  const [emailFocused, setEmailFocused] = useState(false);
+  const width = useWindowDimensions();
+  const emailPartsCount = countEmailParts(email);
+  const { theme } = React.useContext(ThemeContext);
   return (
-    <section style={styles.container()}>
+    <section style={styles.container(width)}>
       <div style={styles.spectrum()} aria-hidden>
         {Array.from(Array(5)).map((_, i) => (
-          <div style={styles.bar({ i })} key={i}></div>
+          <div
+            style={styles.bar({ active: i + 1 <= emailPartsCount, i })}
+            key={i}
+          ></div>
         ))}
       </div>
-      <header style={styles.header()}>
+      <header style={styles.header({ theme })}>
         <h2 style={styles.headerH2()}>Get the newsletter</h2>
       </header>
       <input
-        style={styles.email()}
+        style={styles.email({ theme, focused: emailFocused })}
         type="email"
         placeholder="Your email"
         value={email}
         onChange={(evt) => setEmail(evt.target.value)}
+        onFocus={() => setEmailFocused(true)}
+        onBlur={() => setEmailFocused(false)}
       />
       <button style={styles.submit()}>Sign up</button>
     </section>
@@ -36,10 +46,10 @@ const color = {
 };
 
 const styles = {
-  container: () => ({
+  container: ({ width }) => ({
     position: "relative",
-    maxWidth: "100%",
-    fontSize: "1.25em",
+    maxWidth: width >= 800 ? "700px" : "100%",
+    fontSize: width >= 800 ? "2.25em" : "1.25em",
     padding: "1em 1em 2em 1em",
     background: "#2b283d",
   }),
@@ -53,16 +63,16 @@ const styles = {
     alignItems: "flex-end",
     pointerEvents: "none",
   }),
-  bar: ({ i }) => ({
-    height: "0.5em",
+  bar: ({ active, i }) => ({
+    height: active ? "100%" : "0.5em",
     width: "20%",
     transformOrigin: "bottom",
     transition: "all 1s",
     background: color[Object.keys(color)[i % Object.keys(color).length]],
   }),
-  header: () => ({
+  header: ({ theme }) => ({
     position: "relative",
-    color: "white",
+    color: theme.header.fg || "white",
     zIndex: "1",
     textTransform: "uppercase",
     fontSize: "0.85em",
@@ -71,7 +81,7 @@ const styles = {
   headerH2: () => ({
     margin: "0 0 0.5em 0",
   }),
-  email: () => ({
+  email: ({ theme, focused }) => ({
     position: "relative",
     height: "2em",
     lineHeight: "2em",
@@ -80,11 +90,11 @@ const styles = {
     width: "100%",
     margin: "0.15em",
     border: "1px solid black",
-    color: "inherit",
-    background: "inherit",
-    textAlign: "inherit",
+    color: theme.input.color || "inherit",
+    background: theme.input.background || "inherit",
+    textAlign: theme.input.textAlign || "inherit",
     outlineOffset: "0.15em",
-    outline: "none",
+    outline: focused ? theme.input.outline || "2px solid #fff" : "none",
   }),
   submit: () => ({
     position: "absolute",
@@ -108,18 +118,33 @@ const styles = {
   }),
 };
 
-// function countEmailParts(email) {
-//   if (/@.+\..{2,}$/.test(email)) {
-//     return 5
-//   } else if (/@.+\..?$/.test(email)) {
-//     return 4
-//   } else if (/@.+$/.test(email)) {
-//     return 3
-//   } else if (/@/.test(email)) {
-//     return 2
-//   } else if (/.+/.test(email)) {
-//     return 1
-//   } else {
-//     return 0
-//   }
-// }
+function useWindowDimensions() {
+  const [windowDimension, setWindowDimension] = useState({
+    width: window.innerWidth,
+  });
+  useEffect(() => {
+    function handleResize() {
+      setWindowDimension({ width: window.innerWidth });
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.addEventListener("resize", handleResize);
+  });
+
+  return windowDimension;
+}
+
+function countEmailParts(email) {
+  if (/@.+\..{2,}$/.test(email)) {
+    return 5;
+  } else if (/@.+\..?$/.test(email)) {
+    return 4;
+  } else if (/@.+$/.test(email)) {
+    return 3;
+  } else if (/@/.test(email)) {
+    return 2;
+  } else if (/.+/.test(email)) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
